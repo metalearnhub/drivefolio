@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://metalearnhub.github.io/drivefolio/sitemap.xml
+Sitemap: https://drivefolio.dijaedadula.com/sitemap.xml
