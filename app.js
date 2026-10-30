@@ -635,7 +635,7 @@ $('dl').onclick=function(){var t=$('code').value;if(!t){toast('Add some images f
  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download='gallery.html';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);};
 
 $('mPrev').onclick=function(){$('pPrev').scrollIntoView({behavior:'smooth',block:'start'});};
-$('mCopy').onclick=function(){$('copy').click();};
+$('mCopy').onclick=function(){$('copy').click();}; $('code').addEventListener('copy',function(){var t=$('code').value;if(!t)return;var ci=codeInfo(t);ci.kind='copy';ci.detail=(ci.detail||'')+' manual';track(ci);});
 function snapshot(){var ctl={};[].forEach.call(document.querySelectorAll('.p-lay input,.p-lay select,.p-sty input,.p-sty select,#pvh'),function(e){if(e.id)ctl[e.id]=e.type==='checkbox'?e.checked:e.value;});
  return {links:$('links').value.slice(0,20000),live:$('live').checked,layout:st.layout,ctl:ctl};}
 st.save=null;
