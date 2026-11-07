@@ -696,7 +696,7 @@ vis();track({kind:'open',detail:(document.referrer?'ref:'+document.referrer.slic
 })();
 function noteUI(){var n=$('dfNote');if(!n)return;if(isPro()){n.textContent='Pro is on: thank you for supporting DriveFolio!';return;}
  n['inner'+'HTML']='&hearts; DriveFolio is free and unlimited. The small "Made with DriveFolio" credit is how we keep it that way, and sharing it helps us keep improving it.'+(PRO_SUB?' Prefer no credit? <a href="#" data-gopro>DriveFolio Pro</a> ($1/month, cancel anytime) removes it and supports new features.':PRO_URL?' Prefer no credit? <a href="'+PRO_URL+'" target="_blank" rel="noopener">DriveFolio Pro</a> ('+PRO_PRICE+') removes it and funds new features.':'');}
-fetch(PAY+'/status').then(function(r){return r.json();}).then(function(j){if(j&&j.ready){PRO_SUB=true;noteUI();}}).catch(function(){});
+fetch(PAY+'/status').then(function(r){return r.json();}).then(function(j){if(j&&j.ready&&(j.env==='live'||/[?&]sandbox=1/.test(location.search)||sessionStorage.getItem('df_sb'))){try{sessionStorage.setItem('df_sb','1')}catch(e){}if(j.env!=='live')try{sessionStorage.setItem('df_sb','1')}catch(e){}PRO_SUB=true;noteUI();}}).catch(function(){});
 async function goPro(a){var em=$('sEmail').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){toast('Enter your email in the Save box first. Pro is linked to it.');$('saveBox').scrollIntoView({behavior:'smooth',block:'center'});$('sEmail').focus();return;}
  var old=a.textContent;a.textContent='Opening PayPal...';
  try{var b={email:em};if(st.save){b.g=st.save.id;b.t=st.save.t;}var r=await fetch(PAY+'/subscribe',{method:'POST',body:JSON.stringify(b)}),j=await r.json().catch(function(){return {};});
