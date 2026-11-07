@@ -623,7 +623,10 @@ function loadDemo(){st.images=DEMO.map(function(n,i){var p=i%3===1,w=p?800:1200,
  st.demo=true;st.live=false;st.folder=null;st.tree=null;albUI();say('Showing demo images. Paste your own links above to replace them.');render();}
 $('demo').onclick=loadDemo;
 
-$('live').onchange=function(){if(this.checked&&!verified()){this.checked=false;$('liveWarn').classList.add('hide');toast('Auto-update is free: save with your email and confirm it.');var sb=$('saveBox');if(sb)sb.scrollIntoView({behavior:'smooth',block:'center'});return;}$('liveWarn').classList.toggle('hide',!this.checked);if(st.folder){st.live=this.checked;render();}};
+function needConfirm(){var ss=$('sStatus'),em=$('sEmail').value.trim();ss.className='status';ss.textContent='';var p=document.createElement('div');p.className='warn';
+ p['inner'+'HTML']='<b>One step left:</b> open the email we sent'+(em?' to <b>'+esc(em)+'</b>':'')+' and click the confirm link. That turns on Auto-update and removes the watermark. Not there? Check Spam or Promotions, or <a href="#" data-resend>resend the email</a>.';ss.appendChild(p);}
+$('live').onchange=function(){if(this.checked&&!verified()){this.checked=false;$('liveWarn').classList.add('hide');var sb=$('saveBox');if(sb)sb.scrollIntoView({behavior:'smooth',block:'center'});
+ if(st.save){toast('Confirm your email first. Check your inbox.');needConfirm();}else{toast('Auto-update is free: save with your email below, then confirm it.');$('sEmail').focus();}return;}$('liveWarn').classList.toggle('hide',!this.checked);if(st.folder){st.live=this.checked;render();}};
 
 
 [].forEach.call($('dev').children,function(b){b.onclick=function(){[].forEach.call($('dev').children,function(x){x.className='';});b.className='on';$('frame').style.maxWidth=b.getAttribute('data-w');};});
@@ -661,7 +664,7 @@ $('sBtn').onclick=async function(){var em=$('sEmail').value.trim(),ss=$('sStatus
   ss.className='status ok';ss['inner'+'HTML']=(j.updated?'Saved your changes.':'Saved.')+' Bookmark this private link to edit the gallery later (anyone with it can edit):<div class="elink"><input type="text" readonly id="eLink" aria-label="Edit link"><button class="btn bg" type="button" id="eCopy">Copy link</button></div>';
   $('eLink').value=link;var vn=document.createElement('div');vn.className='hint';vn.style.marginTop='8px';
   if(verified())vn.textContent=isPro()?'Pro: no watermark, no limits.':'Email confirmed: the watermark is off. Copy your code again to use the clean version.';
-  else{vn['inner'+'HTML']='<b>Last step: check your inbox</b> and click the confirm link. It removes the "Made with DriveFolio" watermark and unlocks auto-update and up to '+LIM.free_photos+' photos.';}
+  else{vn['inner'+'HTML']='<b>Last step: check your inbox</b> and click the confirm link. It removes the "Made with DriveFolio" watermark and unlocks auto-update and up to '+LIM.free_photos+' photos. Not there in a minute? Check Spam or Promotions, or <a href="#" data-resend>resend it</a>.';}
   ss.appendChild(vn);render();$('eCopy').onclick=function(){var t=$('eLink');t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value);else document['exec'+'Command']('copy');toast('Edit link copied');};
  }catch(e){ss.className='status err';ss.textContent=e.message;if(e.limit){ss.appendChild(document.createTextNode(' '));var pa=document.createElement('a');pa.href='#';pa.setAttribute('data-pro',e.limit);pa.textContent='Request free Pro (beta)';ss.appendChild(pa);}}
  b.disabled=false;b.textContent=st.save?'Save changes':'Save & get edit link';};
@@ -688,7 +691,13 @@ vis();track({kind:'open',detail:(document.referrer?'ref:'+document.referrer.slic
  var h=document.querySelector('#saveBox .sb-h .hint');if(h)h.textContent='Free with your email: removes the watermark, up to '+LIM.free_photos+' photos, auto-update, and a private edit link.';})();
 async function proReq(a,why){var em=$('sEmail').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){toast('Enter your email in the Save box first');$('saveBox').scrollIntoView({behavior:'smooth',block:'center'});$('sEmail').focus();return;}
  a.textContent='Sending...';try{var r=await fetch(TAPI+'/pro',{method:'POST',body:JSON.stringify({email:em,why:why||''})});if(!r.ok)throw 0;var s=document.createElement('span');s.textContent='Pro request sent. We will email you when it is on.';a.replaceWith(s);}catch(e){a.textContent='Could not send. Try again';}}
-document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('[data-pro],[data-savejump]'):null;if(!a)return;e.preventDefault();
+async function resendMail(a){if(!st.save){toast('Save your gallery first');return;}a.textContent='Sending...';
+ try{var r=await fetch(TAPI+'/resend',{method:'POST',body:JSON.stringify({id:st.save.id,t:st.save.t})}),j=await r.json().catch(function(){return {};});
+  if(j.verified){st.acct=st.acct||{};st.acct.verified=true;a.replaceWith(document.createTextNode('Your email is already confirmed.'));render();return;}
+  if(!r.ok)throw new Error(j.error||'Could not send. Try again.');var s=document.createElement('b');s.textContent='sent it again (it can take a minute)';a.replaceWith(s);}
+ catch(e){a.textContent=e.message||'Could not send. Try again';}}
+document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('[data-pro],[data-savejump],[data-resend]'):null;if(!a)return;e.preventDefault();
+ if(a.hasAttribute('data-resend')){resendMail(a);return;}
  if(a.hasAttribute('data-savejump')){$('saveBox').scrollIntoView({behavior:'smooth',block:'center'});$('sEmail').focus();}else proReq(a,a.getAttribute('data-pro'));});
 fetch(TAPI+'/limits').then(function(r){return r.json();}).then(function(j){if(j&&j.anon_photos!=null&&!st.acct)LIM=j;}).catch(function(){});
 restore().then(function(ok){if(!ok)loadDemo();});
