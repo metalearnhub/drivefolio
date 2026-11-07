@@ -689,6 +689,7 @@ vis();track({kind:'open',detail:(document.referrer?'ref:'+document.referrer.slic
 (function(){var cr=$('credit');if(cr){var row=cr.closest('.tg');if(row)row.style.display='none';}
  var h=document.querySelector('#saveBox .sb-h .hint');if(h)h.textContent='Free. Get a private link to edit this gallery later.';
  var row=document.querySelector('#t-links .row');if(row&&!$('newGal')){var nb=document.createElement('button');nb.type='button';nb.id='newGal';nb.className='btn bg hide';nb.textContent='+ New gallery';row.appendChild(nb);nb.onclick=newGallery;}
+ (function(){if($('howWebcake'))return;var h=document.querySelectorAll('.howto .how'),last=h[h.length-1];if(!last)return;var d=document.createElement('div');d.className='how';d.id='howWebcake';d['inner'+'HTML']='<b>Webcake</b>Free landing page builder. <a href="https://www.dijaedadula.com/pancake" target="_blank" rel="noopener sponsored">Sign up here</a>, then go to <i>Products &rarr; Webcake (Free)</i>. In the page editor, add an <i>HTML</i> element, paste the code, then drag the box to the size you want.';last.parentNode.insertBefore(d,last);})();
  var sr=$('stats');if(sr){sr.checked=true;var tr=sr.closest('.tg');if(tr)tr.style.display='none';}
  var code=$('code');if(code&&!$('dfNote')){var n=document.createElement('div');n.id='dfNote';n.className='hint';n.style.margin='8px 2px 0';code.parentNode.insertBefore(n,code.nextSibling);}
  noteUI();
