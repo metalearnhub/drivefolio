@@ -362,6 +362,8 @@ function getJ(u){var tries=0;
 function list(f){var q=f.url?'url='+encodeURIComponent(f.url):'id='+encodeURIComponent(f.id)+'&order='+(f.order||'name');return getJ('https://qbubwemdvwflxvxwesrl.supabase.co/functions/v1/drive-folder?'+q).then(function(j){return (j.files||[]).map(function(x){return x.u?{s:x.u+'=w1200',f:x.u+'=w2400',t:'',n:x.name,d:x.m||0}:{i:x.id,s:drv(x.id,1200),f:drv(x.id,2400),t:x.name.replace(/\.[^.]+$/,''),n:x.name,d:x.m||0};});});}
 function norm(im){if(im.i&&!im.s){im.s=drv(im.i,1200);im.f=drv(im.i,2400);}return im;}
 function toNode(x){return {n:x.name||'',f:(x.files||[]).map(function(fm){return {i:fm.id,t:fm.name.replace(/\.[^.]+$/,''),n:fm.name,d:fm.m||0};}),ch:(x.children||[]).map(toNode)};}
+ function tcount(n){var k=n.f.length;n.ch.forEach(function(y){k+=tcount(y);});return k;}
+ function capT(n,k){var left=k;(function w(x){x.f=x.f.slice(0,Math.max(0,left));left-=x.f.length;x.ch.forEach(w);x.ch=x.ch.filter(function(y){return tcount(y)>0;});})(n);return n;}
  function clean(s){if(c.clean===false)return s;var o=String(s).replace(/^[\s<>\[\]\(\){}«»#*_~.\-]+/,'').replace(/^\d{1,2}(?:[.\-_]\d{1,2})*(?:\s*[.):\]_\-\u2013\u2014]\s*|\s+)/,'').replace(/[\s<>\[\]\(\){}«»#*_~\-]+$/,'').replace(/\s*\/\s*/g,' / ').trim();return o||s;}
  function newest(n){var m=0;n.f.forEach(function(x){if(x.d>m)m=x.d;});n.ch.forEach(function(k){var v=newest(k);if(v>m)m=v;});return m;}
  function kids(n){var a=n.ch.slice(),s=c.asort||'name';
@@ -499,10 +501,10 @@ function albums(tree){
 if(!c.__sub&&!root.__dfgSeen){root.__dfgSeen=1;beacon({kind:'view',n:(c.images||[]).length||undefined});}
 if(c.albums&&c.tree){if(c.amode==='story')story(c.tree);else albums(c.tree);return;}
 if(c.albums&&c.folder&&c.folder.id){root['inner'+'HTML']='';root.appendChild(el('div','dfg-msg',c.amode==='story'?'Loading slideshow...':'Loading albums...'));
- getJ('https://qbubwemdvwflxvxwesrl.supabase.co/functions/v1/drive-folder?albums=1&id='+encodeURIComponent(c.folder.id)).then(function(j){var tn=toNode(j.tree);if(c.amode==='story')story(tn);else albums(tn);},function(e){throw e;}).catch(function(e){root['inner'+'HTML']='';var m=el('div','dfg-msg');m.textContent='Could not load albums: '+e.message;root.appendChild(m);beacon({kind:'err',detail:'albums: '+e.message});});
+ getJ('https://qbubwemdvwflxvxwesrl.supabase.co/functions/v1/drive-folder?albums=1&id='+encodeURIComponent(c.folder.id)).then(function(j){var tn=toNode(j.tree);if(c.cap)capT(tn,c.cap);if(c.amode==='story')story(tn);else albums(tn);},function(e){throw e;}).catch(function(e){root['inner'+'HTML']='';var m=el('div','dfg-msg');m.textContent='Could not load albums: '+e.message;root.appendChild(m);beacon({kind:'err',detail:'albums: '+e.message});});
  return;}
 if(c.folder&&(c.folder.id||c.folder.url)){root['inner'+'HTML']='';root.appendChild(el('div','dfg-msg','Loading gallery...'));
- list(c.folder).then(function(a){imgs=prep(a);build();},function(e){root['inner'+'HTML']='';var m=el('div','dfg-msg');m.textContent='Could not load images: '+e.message;root.appendChild(m);beacon({kind:'err',detail:'images: '+e.message});});}
+ list(c.folder).then(function(a){if(c.cap)a=a.slice(0,c.cap);imgs=prep(a);build();},function(e){root['inner'+'HTML']='';var m=el('div','dfg-msg');m.textContent='Could not load images: '+e.message;root.appendChild(m);beacon({kind:'err',detail:'images: '+e.message});});}
 else{imgs=prep((c.images||[]).map(norm));build();}
 }
 
@@ -510,7 +512,12 @@ else{imgs=prep((c.images||[]).map(norm));build();}
 (function(){
 var $=function(i){return document.getElementById(i);};
 var RELAY='https://qbubwemdvwflxvxwesrl.supabase.co/functions/v1/drive-folder';
-var st={images:[],layout:'grid',folder:null,live:false,demo:false};
+var st={images:[],layout:'grid',folder:null,live:false,demo:false,acct:null};
+var LIM={anon_photos:30,free_photos:100,free_galleries:3,free_live:1};
+function verified(){return !!(st.acct&&st.acct.verified);}
+function isPro(){return !!(st.acct&&st.acct.plan==='pro');}
+function capN(){return isPro()?0:(verified()?LIM.free_photos:LIM.anon_photos);}
+function capTree(n,k){var left=k;function cnt(x){var t=x.f.length;x.ch.forEach(function(y){t+=cnt(y);});return t;}(function w(x){x.f=x.f.slice(0,Math.max(0,left));left-=x.f.length;x.ch.forEach(w);x.ch=x.ch.filter(function(y){return cnt(y)>0;});})(n);return n;}
 function drv(id,w){return 'https://lh3.googleusercontent.com/d/'+id+'=w'+w;}
 function esc(s){return String(s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];});}
 function short(u){return u.length>60?u.slice(0,57)+'...':u;}
@@ -571,12 +578,12 @@ function tprep(a,c){a=a.slice();var s=c.sort;
  else if(s==='new')a.sort(function(x,y){return ((y.d||0)-(x.d||0))||tncmp(y,x);});
  else if(s==='old')a.sort(function(x,y){return ((x.d||0)-(y.d||0))||tncmp(x,y);});
  return c.max>0?a.slice(0,c.max):a;}
-function cfg(){return {stats:$('stats').checked,layout:st.layout,cols:+$('cols').value,gap:+$('gap').value,radius:+$('radius').value,ratio:$('ratio').value,interval:+$('interval').value,accent:$('accent').value,bg:$('transparent').checked?'transparent':$('bg').value,autoplay:$('autoplay').checked,nav:$('nav').checked,captions:$('captions').checked,lightbox:$('lightbox').checked,hover:$('hover').checked,credit:$('credit').checked,thumbs:$('thumbs').checked,limit:+$('limit').value,max:+$('max').value,sort:$('sort').value,fill:$('fill').checked,albums:!!(st.tree&&$('albums').checked),astyle:$('astyle').value,acols:+$('acols').value,aratio:$('aratio').value,clean:$('clean').checked,acount:$('acount').checked,alabels:$('alabels').checked,asort:$('asort').value,amode:$('amode').value,tpos:$('tpos').value,tstyle:$('tstyle').value,pper:+$('pper').value,shuffle:$('shuffle').checked,kicker:$('kicker').checked,kb:$('kb').checked,fit:$('fit').checked,ahero:$('ahero').checked};}
+function cfg(){return {stats:$('stats').checked,layout:st.layout,cols:+$('cols').value,gap:+$('gap').value,radius:+$('radius').value,ratio:$('ratio').value,interval:+$('interval').value,accent:$('accent').value,bg:$('transparent').checked?'transparent':$('bg').value,autoplay:$('autoplay').checked,nav:$('nav').checked,captions:$('captions').checked,lightbox:$('lightbox').checked,hover:$('hover').checked,credit:!verified(),thumbs:$('thumbs').checked,limit:+$('limit').value,max:+$('max').value,sort:$('sort').value,fill:$('fill').checked,albums:!!(st.tree&&$('albums').checked),astyle:$('astyle').value,acols:+$('acols').value,aratio:$('aratio').value,clean:$('clean').checked,acount:$('acount').checked,alabels:$('alabels').checked,asort:$('asort').value,amode:$('amode').value,tpos:$('tpos').value,tstyle:$('tstyle').value,pper:+$('pper').value,shuffle:$('shuffle').checked,kicker:$('kicker').checked,kb:$('kb').checked,fit:$('fit').checked,ahero:$('ahero').checked};}
 
 function compact(n){return {n:n.n,f:n.f.map(function(x){var o={i:x.i,t:x.t};if(x.d)o.d=x.d;return o;}),ch:n.ch.map(compact)};}
 function albCount(n){var k=n.ch.length;n.ch.forEach(function(x){k+=albCount(x);});return k;}
 function albUI(){$('albBox').classList.toggle('hide',!st.tree);}
-function gen(){var c=cfg(),UID='dfg-'+Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);c.v=2;
+function gen(){var c=cfg(),UID='dfg-'+Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);c.v=2;var cp=capN();if(cp&&st.live)c.cap=cp;
  if(c.albums){if(st.live&&st.folder&&st.folder.id){c.folder={id:st.folder.id,albums:true};}else{c.tree=compact(st.tree);}
   var js=JSON.stringify(c).replace(/</g,'\\u003c');
   return '<div id="'+UID+'"></div>\n<scr'+'ipt>\n('+DriveFolio.toString()+')(document.getElementById("'+UID+'"),'+js+');\n<\/scr'+'ipt>';}
@@ -600,12 +607,14 @@ $('loadLinks').onclick=async function(){var btn=this,r=parse($('links').value);
    for(var fi=0;fi<r.fol.length;fi++){try{var tr=await listTree(r.fol[fi]);trees.push(tr);var a=flat(tr).map(full);if(!a.length)r.errs.push('No images found in folder '+r.fol[fi]+' (is it shared as "Anyone with the link"?)');imgs=imgs.concat(a);}catch(e){r.errs.push('Folder '+r.fol[fi]+': '+e.message);}}
    btn.disabled=false;btn.textContent='Build gallery';}
  }
- st.tree=(r.fol.length===1&&!r.alb.length&&!r.out.length&&trees&&trees[0]&&trees[0].ch.length)?trees[0]:null;albUI();
+ st.tree=(r.fol.length===1&&!r.alb.length&&!r.out.length&&trees&&trees[0]&&trees[0].ch.length)?trees[0]:null;
+ var capM='',cap=capN(),tot0=imgs.length;if(cap&&imgs.length>cap){imgs=imgs.slice(0,cap);if(st.tree)capTree(st.tree,cap);capM='<br><span class="skip">Free limit: showing the first '+cap+' of '+tot0+' photos.</span> '+(verified()?'<a href="#" data-pro="photos">Request free Pro (beta)</a> to show them all.':'<a href="#" data-savejump>Save with your email</a> (free) to show up to '+LIM.free_photos+'.');}
+ albUI();
  if(imgs.length){st.images=imgs;st.demo=false;if(r.fol.length+r.alb.length===1&&!r.out.length){st.folder=r.fol.length?{id:r.fol[0]}:{url:r.alb[0]};st.live=$('live').checked;}else{st.folder=null;st.live=false;}}
  else{st.images=[];st.tree=null;st.folder=null;st.live=false;st.demo=false;albUI();}
  var m=imgs.length?'<b>'+imgs.length+'</b> image'+(imgs.length>1?'s':'')+' added'+(st.tree?' in <b>'+st.tree.ch.length+'</b> albums'+(albCount(st.tree)>st.tree.ch.length?' (+'+(albCount(st.tree)-st.tree.ch.length)+' sub-albums)':'')+'. Album view is on - choose album cards or a story slideshow under "Choose a layout".':'.'):'';
  if(r.errs.length)m+=(m?'<br>':'')+'<span class="skip">Skipped '+r.errs.length+':</span><br>'+r.errs.map(esc).join('<br>');
- say(m,imgs.length?'ok':'err');render();
+ m+=capM;say(m,imgs.length?'ok':'err');render();
  if(imgs.length)track({kind:'build',n:imgs.length,mode:st.tree?'albums':'flat',detail:'folders:'+r.fol.length+' photos:'+r.alb.length+' links:'+r.out.length+' skipped:'+r.errs.length});
  else track({kind:'build_err',detail:(r.errs[0]||'no images').slice(0,280)});};
 
@@ -614,7 +623,7 @@ function loadDemo(){st.images=DEMO.map(function(n,i){var p=i%3===1,w=p?800:1200,
  st.demo=true;st.live=false;st.folder=null;st.tree=null;albUI();say('Showing demo images. Paste your own links above to replace them.');render();}
 $('demo').onclick=loadDemo;
 
-$('live').onchange=function(){$('liveWarn').classList.toggle('hide',!this.checked);if(st.folder){st.live=this.checked;render();}};
+$('live').onchange=function(){if(this.checked&&!verified()){this.checked=false;$('liveWarn').classList.add('hide');toast('Auto-update is free: save with your email and confirm it.');var sb=$('saveBox');if(sb)sb.scrollIntoView({behavior:'smooth',block:'center'});return;}$('liveWarn').classList.toggle('hide',!this.checked);if(st.folder){st.live=this.checked;render();}};
 
 
 [].forEach.call($('dev').children,function(b){b.onclick=function(){[].forEach.call($('dev').children,function(x){x.className='';});b.className='on';$('frame').style.maxWidth=b.getAttribute('data-w');};});
@@ -645,18 +654,24 @@ $('sBtn').onclick=async function(){var em=$('sEmail').value.trim(),ss=$('sStatus
  var b=this;b.disabled=true;b.textContent='Saving...';
  try{var body={email:em,consent:$('sConsent').checked,cfg:snapshot()};if(st.save){body.id=st.save.id;body.t=st.save.t;}
   var r=await fetch(TAPI+'/save',{method:'POST',body:JSON.stringify(body)}),j=await r.json().catch(function(){return {};});
-  if(!r.ok||!j.id)throw new Error(j.error||'Could not save. Please try again.');
+  if(j.acct)st.acct=j.acct;if(j.limits)LIM=j.limits;
+  if(!r.ok||!j.id){var er=new Error(j.error||'Could not save. Please try again.');er.limit=j.limit;throw er;}
   st.save={id:j.id,t:j.t};var link=location.origin+location.pathname+'?g='+j.id+'&t='+j.t;
   try{history.replaceState(null,'',location.pathname+'?g='+j.id+'&t='+j.t);}catch(e){}
   ss.className='status ok';ss['inner'+'HTML']=(j.updated?'Saved your changes.':'Saved.')+' Bookmark this private link to edit the gallery later (anyone with it can edit):<div class="elink"><input type="text" readonly id="eLink" aria-label="Edit link"><button class="btn bg" type="button" id="eCopy">Copy link</button></div>';
-  $('eLink').value=link;$('eCopy').onclick=function(){var t=$('eLink');t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value);else document['exec'+'Command']('copy');toast('Edit link copied');};
- }catch(e){ss.className='status err';ss.textContent=e.message;}
+  $('eLink').value=link;var vn=document.createElement('div');vn.className='hint';vn.style.marginTop='8px';
+  if(verified())vn.textContent=isPro()?'Pro: no watermark, no limits.':'Email confirmed: the watermark is off. Copy your code again to use the clean version.';
+  else{vn['inner'+'HTML']='<b>Last step: check your inbox</b> and click the confirm link. It removes the "Made with DriveFolio" watermark and unlocks auto-update and up to '+LIM.free_photos+' photos.';}
+  ss.appendChild(vn);render();$('eCopy').onclick=function(){var t=$('eLink');t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value);else document['exec'+'Command']('copy');toast('Edit link copied');};
+ }catch(e){ss.className='status err';ss.textContent=e.message;if(e.limit){ss.appendChild(document.createTextNode(' '));var pa=document.createElement('a');pa.href='#';pa.setAttribute('data-pro',e.limit);pa.textContent='Request free Pro (beta)';ss.appendChild(pa);}}
  b.disabled=false;b.textContent=st.save?'Save changes':'Save & get edit link';};
-async function restore(){var q=new URLSearchParams(location.search),g=q.get('g'),t=q.get('t');if(!g||!t)return false;
+async function restore(){var q=new URLSearchParams(location.search),g=q.get('g'),t=q.get('t'),v=q.get('v');if(!g||!t)return false;
  say('Loading your saved gallery...');
- try{var r=await fetch(TAPI+'/load?id='+encodeURIComponent(g)+'&t='+encodeURIComponent(t)),j=await r.json();if(!r.ok||!j.cfg)throw new Error(j.error||'Could not load this gallery.');
+ try{var r=await fetch(TAPI+'/load?id='+encodeURIComponent(g)+'&t='+encodeURIComponent(t)+(v?'&v='+encodeURIComponent(v):'')),j=await r.json();if(!r.ok||!j.cfg)throw new Error(j.error||'Could not load this gallery.');
+  st.acct=j.acct||null;if(j.limits)LIM=j.limits;if(v){try{history.replaceState(null,'',location.pathname+'?g='+g+'&t='+t);}catch(e){}}
+  if(j.justVerified)setTimeout(function(){toast('Email confirmed. The watermark is off!');var ss=$('sStatus');ss.className='status ok';ss.textContent='Email confirmed: the watermark is off and auto-update plus up to '+LIM.free_photos+' photos are unlocked. Copy your code again to use the clean version.';},700);
   var s=j.cfg;st.save={id:g,t:t};$('sEmail').value=j.email||'';$('sBtn').textContent='Save changes';
-  $('links').value=s.links||'';$('live').checked=!!s.live;$('liveWarn').classList.toggle('hide',!s.live);
+  $('links').value=s.links||'';$('live').checked=!!s.live&&verified();$('liveWarn').classList.toggle('hide',!$('live').checked);
   if(s.layout){st.layout=s.layout;[].forEach.call(lw.children,function(x){var on=x.getAttribute('data-l')===s.layout;x.className='lay'+(on?' on':'');x.setAttribute('aria-pressed',on?'true':'false');});}
   var ctl=s.ctl||{};Object.keys(ctl).forEach(function(k){var e=$(k);if(!e)return;if(e.type==='checkbox')e.checked=!!ctl[k];else e.value=ctl[k];var v=$(k+'V');if(v)v.textContent=(k==='limit'||k==='max'||k==='pper')&&String(ctl[k])==='0'?'All':ctl[k]+(k==='interval'?'s':'');});
   $('bg').disabled=$('transparent').checked;
@@ -669,5 +684,12 @@ $('links').setAttribute('aria-label','Image, folder or Google Photos links, one 
 [].forEach.call(lw.children,function(x){x.setAttribute('aria-pressed',x.className.indexOf(' on')>0?'true':'false');x.addEventListener('click',function(){[].forEach.call(lw.children,function(y){y.setAttribute('aria-pressed',y===x?'true':'false');});});});
 [].forEach.call($('dev').children,function(x){x.setAttribute('aria-pressed',x.className==='on'?'true':'false');x.addEventListener('click',function(){[].forEach.call($('dev').children,function(y){y.setAttribute('aria-pressed',y===x?'true':'false');});});});
 vis();track({kind:'open',detail:(document.referrer?'ref:'+document.referrer.slice(0,120):'direct')+(location.search.indexOf('utm_source=embed')>=0?' via-credit':'')});
+(function(){var cr=$('credit');if(cr){var row=cr.closest('.tg');if(row)row.style.display='none';}
+ var h=document.querySelector('#saveBox .sb-h .hint');if(h)h.textContent='Free with your email: removes the watermark, up to '+LIM.free_photos+' photos, auto-update, and a private edit link.';})();
+async function proReq(a,why){var em=$('sEmail').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){toast('Enter your email in the Save box first');$('saveBox').scrollIntoView({behavior:'smooth',block:'center'});$('sEmail').focus();return;}
+ a.textContent='Sending...';try{var r=await fetch(TAPI+'/pro',{method:'POST',body:JSON.stringify({email:em,why:why||''})});if(!r.ok)throw 0;var s=document.createElement('span');s.textContent='Pro request sent. We will email you when it is on.';a.replaceWith(s);}catch(e){a.textContent='Could not send. Try again';}}
+document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('[data-pro],[data-savejump]'):null;if(!a)return;e.preventDefault();
+ if(a.hasAttribute('data-savejump')){$('saveBox').scrollIntoView({behavior:'smooth',block:'center'});$('sEmail').focus();}else proReq(a,a.getAttribute('data-pro'));});
+fetch(TAPI+'/limits').then(function(r){return r.json();}).then(function(j){if(j&&j.anon_photos!=null&&!st.acct)LIM=j;}).catch(function(){});
 restore().then(function(ok){if(!ok)loadDemo();});
 })();
