@@ -514,8 +514,7 @@ var $=function(i){return document.getElementById(i);};
 var RELAY='https://qbubwemdvwflxvxwesrl.supabase.co/functions/v1/drive-folder';
 var st={images:[],layout:'grid',folder:null,live:false,demo:false,acct:null};
 var LIM={anon_photos:0,free_photos:0,free_galleries:1000000,free_live:1000000};
-var PRO_TEST=/[?&]sandbox=1/.test(location.search);
-var PRO_URL=PRO_TEST?'https://www.paypal.com/ncp/payment/PLB-FGW6BG6ZXSFW':'',PRO_PRICE=PRO_TEST?'$1 test':'$19 once';
+var PRO_URL='https://www.paypal.com/ncp/payment/PLB-E97EMD9GA79T',PRO_PRICE='$1, one-time';
 function verified(){return !!(st.acct&&st.acct.verified);}
 function isPro(){return !!(st.acct&&st.acct.plan==='pro');}
 function capN(){return isPro()?0:(verified()?LIM.free_photos:LIM.anon_photos);}
