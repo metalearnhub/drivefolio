@@ -514,7 +514,8 @@ var $=function(i){return document.getElementById(i);};
 var RELAY='https://qbubwemdvwflxvxwesrl.supabase.co/functions/v1/drive-folder';
 var st={images:[],layout:'grid',folder:null,live:false,demo:false,acct:null};
 var LIM={anon_photos:0,free_photos:0,free_galleries:1000000,free_live:1000000};
-var PRO_URL='';
+var PRO_TEST=/[?&]sandbox=1/.test(location.search);
+var PRO_URL=PRO_TEST?'https://www.paypal.com/ncp/payment/PLB-FGW6BG6ZXSFW':'',PRO_PRICE=PRO_TEST?'$1 test':'$19 once';
 function verified(){return !!(st.acct&&st.acct.verified);}
 function isPro(){return !!(st.acct&&st.acct.plan==='pro');}
 function capN(){return isPro()?0:(verified()?LIM.free_photos:LIM.anon_photos);}
@@ -695,7 +696,7 @@ vis();track({kind:'open',detail:(document.referrer?'ref:'+document.referrer.slic
   setTimeout(function(){toast('Thank you for supporting DriveFolio!');say('<b>Thank you for going Pro!</b> We switch it on for your email within 24 hours and email you. Then open your edit link (or save again) and copy your code: the credit will be gone.','ok');},800);}
 })();
 function noteUI(){var n=$('dfNote');if(!n)return;if(isPro()){n.textContent='Pro is on: thank you for supporting DriveFolio!';return;}
- n['inner'+'HTML']='&hearts; DriveFolio is free and unlimited. The small "Made with DriveFolio" credit is how we keep it that way, and sharing it helps us keep improving it.'+(PRO_URL?' Prefer no credit? <a href="'+PRO_URL+'" target="_blank" rel="noopener">DriveFolio Pro</a> ($19 once) removes it and funds new features.':'');}
+ n['inner'+'HTML']='&hearts; DriveFolio is free and unlimited. The small "Made with DriveFolio" credit is how we keep it that way, and sharing it helps us keep improving it.'+(PRO_URL?' Prefer no credit? <a href="'+PRO_URL+'" target="_blank" rel="noopener">DriveFolio Pro</a> ('+PRO_PRICE+') removes it and funds new features.':'');}
 function newGalUI(){var b=$('newGal');if(b)b.classList.toggle('hide',!st.save);noteUI();}
 function newGallery(){st.save=null;try{history.replaceState(null,'',location.pathname);}catch(e){}$('links').value='';$('sBtn').textContent='Save & get edit link';var ss=$('sStatus');ss.className='status';ss.textContent='';newGalUI();loadDemo();$('links').focus();toast('New gallery: paste your links');}
 async function proReq(a,why){var em=$('sEmail').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){toast('Enter your email in the Save box first');$('saveBox').scrollIntoView({behavior:'smooth',block:'center'});$('sEmail').focus();return;}
