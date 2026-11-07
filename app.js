@@ -514,7 +514,7 @@ var $=function(i){return document.getElementById(i);};
 var RELAY='https://qbubwemdvwflxvxwesrl.supabase.co/functions/v1/drive-folder';
 var st={images:[],layout:'grid',folder:null,live:false,demo:false,acct:null};
 var LIM={anon_photos:0,free_photos:0,free_galleries:1000000,free_live:1000000};
-var PRO_URL='https://www.paypal.com/ncp/payment/PLB-E97EMD9GA79T',PRO_PRICE='$1, one-time';
+var PRO_URL='https://www.paypal.com/ncp/payment/PLB-E97EMD9GA79T',PRO_PRICE='$1, one-time',PRO_SUB=false,PAY='https://qbubwemdvwflxvxwesrl.supabase.co/functions/v1/df-pay';
 function verified(){return !!(st.acct&&st.acct.verified);}
 function isPro(){return !!(st.acct&&st.acct.plan==='pro');}
 function capN(){return isPro()?0:(verified()?LIM.free_photos:LIM.anon_photos);}
@@ -695,7 +695,23 @@ vis();track({kind:'open',detail:(document.referrer?'ref:'+document.referrer.slic
   setTimeout(function(){toast('Thank you for supporting DriveFolio!');say('<b>Thank you for going Pro!</b> We switch it on for your email within 24 hours and email you. Then open your edit link (or save again) and copy your code: the credit will be gone.','ok');},800);}
 })();
 function noteUI(){var n=$('dfNote');if(!n)return;if(isPro()){n.textContent='Pro is on: thank you for supporting DriveFolio!';return;}
- n['inner'+'HTML']='&hearts; DriveFolio is free and unlimited. The small "Made with DriveFolio" credit is how we keep it that way, and sharing it helps us keep improving it.'+(PRO_URL?' Prefer no credit? <a href="'+PRO_URL+'" target="_blank" rel="noopener">DriveFolio Pro</a> ('+PRO_PRICE+') removes it and funds new features.':'');}
+ n['inner'+'HTML']='&hearts; DriveFolio is free and unlimited. The small "Made with DriveFolio" credit is how we keep it that way, and sharing it helps us keep improving it.'+(PRO_SUB?' Prefer no credit? <a href="#" data-gopro>DriveFolio Pro</a> ($1/month, cancel anytime) removes it and supports new features.':PRO_URL?' Prefer no credit? <a href="'+PRO_URL+'" target="_blank" rel="noopener">DriveFolio Pro</a> ('+PRO_PRICE+') removes it and funds new features.':'');}
+fetch(PAY+'/status').then(function(r){return r.json();}).then(function(j){if(j&&j.ready){PRO_SUB=true;noteUI();}}).catch(function(){});
+async function goPro(a){var em=$('sEmail').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){toast('Enter your email in the Save box first. Pro is linked to it.');$('saveBox').scrollIntoView({behavior:'smooth',block:'center'});$('sEmail').focus();return;}
+ var old=a.textContent;a.textContent='Opening PayPal...';
+ try{var b={email:em};if(st.save){b.g=st.save.id;b.t=st.save.t;}var r=await fetch(PAY+'/subscribe',{method:'POST',body:JSON.stringify(b)}),j=await r.json().catch(function(){return {};});
+  if(!r.ok||!j.approve)throw new Error(j.error||'Could not open PayPal. Please try again.');track({kind:'save',detail:'pro-checkout'});location.href=j.approve;}
+ catch(e){a.textContent=old;toast(e.message);}}
+async function proReturn(){var q=new URLSearchParams(location.search),p=q.get('pro');if(p!=='ok'&&p!=='cancel')return;
+ var keep=new URLSearchParams();if(q.get('g')&&q.get('t')){keep.set('g',q.get('g'));keep.set('t',q.get('t'));}
+ try{history.replaceState(null,'',location.pathname+(keep.toString()?'?'+keep.toString():''));}catch(e){}
+ if(p==='cancel'){setTimeout(function(){toast('No problem. DriveFolio stays free.');},600);return;}
+ var sid=q.get('subscription_id');if(!sid)return;say('Confirming your Pro subscription with PayPal...');
+ try{var r=await fetch(PAY+'/activate',{method:'POST',body:JSON.stringify({subscription_id:sid})}),j=await r.json();
+  if(j.plan==='pro'){st.acct={verified:true,plan:'pro'};if(j.email&&!$('sEmail').value)$('sEmail').value=j.email;noteUI();render();toast('Thank you! Pro is on');
+   setTimeout(function(){say('<b>Thank you for going Pro!</b> The credit is removed for <b>'+esc(j.email||'your email')+'</b>. Copy your code again to use the clean version.','ok');},900);}
+  else say('PayPal is still processing your subscription. Pro switches on automatically within a few minutes; reopen your edit link then.','ok');}
+ catch(e){say('We could not confirm with PayPal just now. Pro switches on automatically within a few minutes.','ok');}}
 function newGalUI(){var b=$('newGal');if(b)b.classList.toggle('hide',!st.save);noteUI();}
 function newGallery(){st.save=null;try{history.replaceState(null,'',location.pathname);}catch(e){}$('links').value='';$('sBtn').textContent='Save & get edit link';var ss=$('sStatus');ss.className='status';ss.textContent='';newGalUI();loadDemo();$('links').focus();toast('New gallery: paste your links');}
 async function proReq(a,why){var em=$('sEmail').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){toast('Enter your email in the Save box first');$('saveBox').scrollIntoView({behavior:'smooth',block:'center'});$('sEmail').focus();return;}
@@ -705,10 +721,11 @@ async function resendMail(a){if(!st.save){toast('Save your gallery first');retur
   if(j.verified){st.acct=st.acct||{};st.acct.verified=true;a.replaceWith(document.createTextNode('Your email is already confirmed.'));render();return;}
   if(!r.ok)throw new Error(j.error||'Could not send. Try again.');var s=document.createElement('b');s.textContent='sent it again (it can take a minute)';a.replaceWith(s);}
  catch(e){a.textContent=e.message||'Could not send. Try again';}}
-document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('[data-pro],[data-savejump],[data-resend],[data-newgal]'):null;if(!a)return;e.preventDefault();
+document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('[data-pro],[data-savejump],[data-resend],[data-newgal],[data-gopro]'):null;if(!a)return;e.preventDefault();
  if(a.hasAttribute('data-newgal')){newGallery();$('links').scrollIntoView({behavior:'smooth',block:'center'});return;}
  if(a.hasAttribute('data-resend')){resendMail(a);return;}
+ if(a.hasAttribute('data-gopro')){goPro(a);return;}
  if(a.hasAttribute('data-savejump')){$('saveBox').scrollIntoView({behavior:'smooth',block:'center'});$('sEmail').focus();}else proReq(a,a.getAttribute('data-pro'));});
 fetch(TAPI+'/limits').then(function(r){return r.json();}).then(function(j){if(j&&j.anon_photos!=null&&!st.acct)LIM=j;}).catch(function(){});
-restore().then(function(ok){if(!ok)loadDemo();});
+proReturn().then(function(){return restore();}).then(function(ok){if(!ok&&!st.images.length)loadDemo();});
 })();
