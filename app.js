@@ -513,7 +513,8 @@ else{imgs=prep((c.images||[]).map(norm));build();}
 var $=function(i){return document.getElementById(i);};
 var RELAY='https://qbubwemdvwflxvxwesrl.supabase.co/functions/v1/drive-folder';
 var st={images:[],layout:'grid',folder:null,live:false,demo:false,acct:null};
-var LIM={anon_photos:30,free_photos:100,free_galleries:3,free_live:1};
+var LIM={anon_photos:0,free_photos:0,free_galleries:1000000,free_live:1000000};
+var PRO_URL='';
 function verified(){return !!(st.acct&&st.acct.verified);}
 function isPro(){return !!(st.acct&&st.acct.plan==='pro');}
 function capN(){return isPro()?0:(verified()?LIM.free_photos:LIM.anon_photos);}
@@ -578,7 +579,7 @@ function tprep(a,c){a=a.slice();var s=c.sort;
  else if(s==='new')a.sort(function(x,y){return ((y.d||0)-(x.d||0))||tncmp(y,x);});
  else if(s==='old')a.sort(function(x,y){return ((x.d||0)-(y.d||0))||tncmp(x,y);});
  return c.max>0?a.slice(0,c.max):a;}
-function cfg(){return {stats:$('stats').checked,layout:st.layout,cols:+$('cols').value,gap:+$('gap').value,radius:+$('radius').value,ratio:$('ratio').value,interval:+$('interval').value,accent:$('accent').value,bg:$('transparent').checked?'transparent':$('bg').value,autoplay:$('autoplay').checked,nav:$('nav').checked,captions:$('captions').checked,lightbox:$('lightbox').checked,hover:$('hover').checked,credit:!verified(),thumbs:$('thumbs').checked,limit:+$('limit').value,max:+$('max').value,sort:$('sort').value,fill:$('fill').checked,albums:!!(st.tree&&$('albums').checked),astyle:$('astyle').value,acols:+$('acols').value,aratio:$('aratio').value,clean:$('clean').checked,acount:$('acount').checked,alabels:$('alabels').checked,asort:$('asort').value,amode:$('amode').value,tpos:$('tpos').value,tstyle:$('tstyle').value,pper:+$('pper').value,shuffle:$('shuffle').checked,kicker:$('kicker').checked,kb:$('kb').checked,fit:$('fit').checked,ahero:$('ahero').checked};}
+function cfg(){return {stats:$('stats').checked,layout:st.layout,cols:+$('cols').value,gap:+$('gap').value,radius:+$('radius').value,ratio:$('ratio').value,interval:+$('interval').value,accent:$('accent').value,bg:$('transparent').checked?'transparent':$('bg').value,autoplay:$('autoplay').checked,nav:$('nav').checked,captions:$('captions').checked,lightbox:$('lightbox').checked,hover:$('hover').checked,credit:!isPro(),thumbs:$('thumbs').checked,limit:+$('limit').value,max:+$('max').value,sort:$('sort').value,fill:$('fill').checked,albums:!!(st.tree&&$('albums').checked),astyle:$('astyle').value,acols:+$('acols').value,aratio:$('aratio').value,clean:$('clean').checked,acount:$('acount').checked,alabels:$('alabels').checked,asort:$('asort').value,amode:$('amode').value,tpos:$('tpos').value,tstyle:$('tstyle').value,pper:+$('pper').value,shuffle:$('shuffle').checked,kicker:$('kicker').checked,kb:$('kb').checked,fit:$('fit').checked,ahero:$('ahero').checked};}
 
 function compact(n){return {n:n.n,f:n.f.map(function(x){var o={i:x.i,t:x.t};if(x.d)o.d=x.d;return o;}),ch:n.ch.map(compact)};}
 function albCount(n){var k=n.ch.length;n.ch.forEach(function(x){k+=albCount(x);});return k;}
@@ -625,8 +626,7 @@ $('demo').onclick=loadDemo;
 
 function needConfirm(){var ss=$('sStatus'),em=$('sEmail').value.trim();ss.className='status';ss.textContent='';var p=document.createElement('div');p.className='warn';
  p['inner'+'HTML']='<b>One step left:</b> open the email we sent'+(em?' to <b>'+esc(em)+'</b>':'')+' and click the confirm link. That turns on Auto-update and removes the watermark. Not there? Check Spam or Promotions, or <a href="#" data-resend>resend the email</a>.';ss.appendChild(p);}
-$('live').onchange=function(){if(this.checked&&!verified()){this.checked=false;$('liveWarn').classList.add('hide');var sb=$('saveBox');if(sb)sb.scrollIntoView({behavior:'smooth',block:'center'});
- if(st.save){toast('Confirm your email first. Check your inbox.');needConfirm();}else{toast('Auto-update is free: save with your email below, then confirm it.');$('sEmail').focus();}return;}$('liveWarn').classList.toggle('hide',!this.checked);if(st.folder){st.live=this.checked;render();}};
+$('live').onchange=function(){$('liveWarn').classList.toggle('hide',!this.checked);if(st.folder){st.live=this.checked;render();}};
 
 
 [].forEach.call($('dev').children,function(b){b.onclick=function(){[].forEach.call($('dev').children,function(x){x.className='';});b.className='on';$('frame').style.maxWidth=b.getAttribute('data-w');};});
@@ -663,18 +663,17 @@ $('sBtn').onclick=async function(){var em=$('sEmail').value.trim(),ss=$('sStatus
   try{history.replaceState(null,'',location.pathname+'?g='+j.id+'&t='+j.t);}catch(e){}
   ss.className='status ok';ss['inner'+'HTML']=(j.updated?'Saved your changes.':'Saved.')+' Bookmark this private link to edit the gallery later (anyone with it can edit):<div class="elink"><input type="text" readonly id="eLink" aria-label="Edit link"><button class="btn bg" type="button" id="eCopy">Copy link</button></div>';
   $('eLink').value=link;var vn=document.createElement('div');vn.className='hint';vn.style.marginTop='8px';
-  if(verified())vn.textContent=isPro()?'Pro: no watermark, no limits.':'Email confirmed: the watermark is off. Copy your code again to use the clean version.';
-  else{vn['inner'+'HTML']='<b>Last step: check your inbox</b> and click the confirm link. It removes the "Made with DriveFolio" watermark and unlocks auto-update and up to '+LIM.free_photos+' photos. Not there in a minute? Check Spam or Promotions, or <a href="#" data-resend>resend it</a>.';}
-  ss.appendChild(vn);render();$('eCopy').onclick=function(){var t=$('eLink');t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value);else document['exec'+'Command']('copy');toast('Edit link copied');};
+  vn['inner'+'HTML']=(isPro()?'Pro is on for this email: your code has no credit. ':'Keep this link to edit later. ')+'<a href="#" data-newgal>+ Start a new gallery</a>';
+  ss.appendChild(vn);render();newGalUI();$('eCopy').onclick=function(){var t=$('eLink');t.select();if(navigator.clipboard)navigator.clipboard.writeText(t.value);else document['exec'+'Command']('copy');toast('Edit link copied');};
  }catch(e){ss.className='status err';ss.textContent=e.message;if(e.limit){ss.appendChild(document.createTextNode(' '));var pa=document.createElement('a');pa.href='#';pa.setAttribute('data-pro',e.limit);pa.textContent='Request free Pro (beta)';ss.appendChild(pa);}}
  b.disabled=false;b.textContent=st.save?'Save changes':'Save & get edit link';};
 async function restore(){var q=new URLSearchParams(location.search),g=q.get('g'),t=q.get('t'),v=q.get('v');if(!g||!t)return false;
  say('Loading your saved gallery...');
  try{var r=await fetch(TAPI+'/load?id='+encodeURIComponent(g)+'&t='+encodeURIComponent(t)+(v?'&v='+encodeURIComponent(v):'')),j=await r.json();if(!r.ok||!j.cfg)throw new Error(j.error||'Could not load this gallery.');
   st.acct=j.acct||null;if(j.limits)LIM=j.limits;if(v){try{history.replaceState(null,'',location.pathname+'?g='+g+'&t='+t);}catch(e){}}
-  if(j.justVerified)setTimeout(function(){toast('Email confirmed. The watermark is off!');var ss=$('sStatus');ss.className='status ok';ss.textContent='Email confirmed: the watermark is off and auto-update plus up to '+LIM.free_photos+' photos are unlocked. Copy your code again to use the clean version.';},700);
+  setTimeout(newGalUI,0);if(isPro())setTimeout(function(){toast('Pro is on: your code has no credit');},700);
   var s=j.cfg;st.save={id:g,t:t};$('sEmail').value=j.email||'';$('sBtn').textContent='Save changes';
-  $('links').value=s.links||'';$('live').checked=!!s.live&&verified();$('liveWarn').classList.toggle('hide',!$('live').checked);
+  $('links').value=s.links||'';$('live').checked=!!s.live;$('liveWarn').classList.toggle('hide',!s.live);
   if(s.layout){st.layout=s.layout;[].forEach.call(lw.children,function(x){var on=x.getAttribute('data-l')===s.layout;x.className='lay'+(on?' on':'');x.setAttribute('aria-pressed',on?'true':'false');});}
   var ctl=s.ctl||{};Object.keys(ctl).forEach(function(k){var e=$(k);if(!e)return;if(e.type==='checkbox')e.checked=!!ctl[k];else e.value=ctl[k];var v=$(k+'V');if(v)v.textContent=(k==='limit'||k==='max'||k==='pper')&&String(ctl[k])==='0'?'All':ctl[k]+(k==='interval'?'s':'');});
   $('bg').disabled=$('transparent').checked;
@@ -688,7 +687,17 @@ $('links').setAttribute('aria-label','Image, folder or Google Photos links, one 
 [].forEach.call($('dev').children,function(x){x.setAttribute('aria-pressed',x.className==='on'?'true':'false');x.addEventListener('click',function(){[].forEach.call($('dev').children,function(y){y.setAttribute('aria-pressed',y===x?'true':'false');});});});
 vis();track({kind:'open',detail:(document.referrer?'ref:'+document.referrer.slice(0,120):'direct')+(location.search.indexOf('utm_source=embed')>=0?' via-credit':'')});
 (function(){var cr=$('credit');if(cr){var row=cr.closest('.tg');if(row)row.style.display='none';}
- var h=document.querySelector('#saveBox .sb-h .hint');if(h)h.textContent='Free with your email: removes the watermark, up to '+LIM.free_photos+' photos, auto-update, and a private edit link.';})();
+ var h=document.querySelector('#saveBox .sb-h .hint');if(h)h.textContent='Free. Get a private link to edit this gallery later.';
+ var row=document.querySelector('#t-links .row');if(row&&!$('newGal')){var nb=document.createElement('button');nb.type='button';nb.id='newGal';nb.className='btn bg hide';nb.textContent='+ New gallery';row.appendChild(nb);nb.onclick=newGallery;}
+ var code=$('code');if(code&&!$('dfNote')){var n=document.createElement('div');n.id='dfNote';n.className='hint';n.style.margin='8px 2px 0';code.parentNode.insertBefore(n,code.nextSibling);}
+ noteUI();
+ if(/[?&]pro=thanks/.test(location.search)){try{history.replaceState(null,'',location.pathname);}catch(e){}
+  setTimeout(function(){toast('Thank you for supporting DriveFolio!');say('<b>Thank you for going Pro!</b> We switch it on for your email within 24 hours and email you. Then open your edit link (or save again) and copy your code: the credit will be gone.','ok');},800);}
+})();
+function noteUI(){var n=$('dfNote');if(!n)return;if(isPro()){n.textContent='Pro is on: thank you for supporting DriveFolio!';return;}
+ n['inner'+'HTML']='&hearts; DriveFolio is free and unlimited. The small "Made with DriveFolio" credit is how we keep it that way, and sharing it helps us keep improving it.'+(PRO_URL?' Prefer no credit? <a href="'+PRO_URL+'" target="_blank" rel="noopener">DriveFolio Pro</a> ($19 once) removes it and funds new features.':'');}
+function newGalUI(){var b=$('newGal');if(b)b.classList.toggle('hide',!st.save);noteUI();}
+function newGallery(){st.save=null;try{history.replaceState(null,'',location.pathname);}catch(e){}$('links').value='';$('sBtn').textContent='Save & get edit link';var ss=$('sStatus');ss.className='status';ss.textContent='';newGalUI();loadDemo();$('links').focus();toast('New gallery: paste your links');}
 async function proReq(a,why){var em=$('sEmail').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){toast('Enter your email in the Save box first');$('saveBox').scrollIntoView({behavior:'smooth',block:'center'});$('sEmail').focus();return;}
  a.textContent='Sending...';try{var r=await fetch(TAPI+'/pro',{method:'POST',body:JSON.stringify({email:em,why:why||''})});if(!r.ok)throw 0;var s=document.createElement('span');s.textContent='Pro request sent. We will email you when it is on.';a.replaceWith(s);}catch(e){a.textContent='Could not send. Try again';}}
 async function resendMail(a){if(!st.save){toast('Save your gallery first');return;}a.textContent='Sending...';
@@ -696,7 +705,8 @@ async function resendMail(a){if(!st.save){toast('Save your gallery first');retur
   if(j.verified){st.acct=st.acct||{};st.acct.verified=true;a.replaceWith(document.createTextNode('Your email is already confirmed.'));render();return;}
   if(!r.ok)throw new Error(j.error||'Could not send. Try again.');var s=document.createElement('b');s.textContent='sent it again (it can take a minute)';a.replaceWith(s);}
  catch(e){a.textContent=e.message||'Could not send. Try again';}}
-document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('[data-pro],[data-savejump],[data-resend]'):null;if(!a)return;e.preventDefault();
+document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('[data-pro],[data-savejump],[data-resend],[data-newgal]'):null;if(!a)return;e.preventDefault();
+ if(a.hasAttribute('data-newgal')){newGallery();$('links').scrollIntoView({behavior:'smooth',block:'center'});return;}
  if(a.hasAttribute('data-resend')){resendMail(a);return;}
  if(a.hasAttribute('data-savejump')){$('saveBox').scrollIntoView({behavior:'smooth',block:'center'});$('sEmail').focus();}else proReq(a,a.getAttribute('data-pro'));});
 fetch(TAPI+'/limits').then(function(r){return r.json();}).then(function(j){if(j&&j.anon_photos!=null&&!st.acct)LIM=j;}).catch(function(){});
